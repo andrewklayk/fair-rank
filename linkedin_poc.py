@@ -22,11 +22,11 @@ def detconstsort(items: pd.DataFrame | dict, sens_attr: str,
                 f'Not enough items of group -- {sv} -- to satisfy target constraint!'
             )
     # group the items by their sensitive attribute values
-    if not isinstance(sens_vals, dict):
+    if not isinstance(items, dict):
         items = items.sort_values(axis=0, by='score',ascending=False)
         item_groups = [it for ai, it in zip(sens_vals, [items[items[sens_attr] == ai] for ai in sens_vals])]
     else:
-        # check if dict is constructed correctly
+        # check if dict is constructed correctly maybe?
         raise(NotImplementedError)
     while lastEmpty < kmax:
         k+=1
@@ -64,7 +64,7 @@ def detconstsort(items: pd.DataFrame | dict, sens_attr: str,
                 lastEmpty+=1
                 counts[sens_vals.index(newitem[sens_attr])] += 1
             min_counts = min_counts_at_k
-    return rankedItems
+    return pd.DataFrame(rankedItems)
 
 def gen_fake_data(sens_attr: str, sens_prop: dict, score_means: dict, k: int=100, seed: float=None):
     groups = []
@@ -79,15 +79,26 @@ def gen_fake_data(sens_attr: str, sens_prop: dict, score_means: dict, k: int=100
         groups.append(df_i)
     return pd.concat(groups)
 
-def infeasible_index(ranking, probs):
-    raise NotImplementedError
+def infeasible_index(ranking: pd.DataFrame, sens_attr: str, probs: dict, kmax: int):
+    ii = 0
+    for k in range(1, kmax):
+        r = ranking[:k]
+        for ai in probs.keys():
+            count_ai = r[r[sens_attr] == ai].shape[0]
+            if count_ai < int(probs[ai]*k):
+                ii+=1
+    return ii            
 
 
 def main():
     inp = pd.DataFrame(columns = ['a', 'score'])
     df = gen_fake_data('a', {'blue': 0.7, 'red':0.3}, {'blue': 70, 'red': 40}, k=100, seed=42)
     df.sort_values(by='score', inplace=True, ascending=False)
-    res = detconstsort(items = df, probs = {'red': 0.5, 'blue': 0.5}, kmax = 10, sens_attr = 'a')
+
+    probs = {'red': 0.5, 'blue': 0.5}
+    print(infeasible_index(df, 'a', probs, 10))
+    res = detconstsort(items = df, probs = probs, kmax = 10, sens_attr = 'a')
+    print(infeasible_index(res, 'a', probs, 10))
     print(pd.DataFrame(res[0]))
 
 if __name__ == "__main__":
