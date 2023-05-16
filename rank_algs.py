@@ -133,28 +133,3 @@ def detconstsort(items: pd.DataFrame | dict, s: str,
                 counts[sens_vals.index(newitem[s])] += 1
             min_counts = min_counts_at_k
     return pd.DataFrame(rankedItems)
-
-def gen_fake_data(s: str, props: dict, score_means: dict, k: int=100, seed: float=None):
-    groups = []
-    rng = np.random.default_rng(seed=seed)
-    scores = rng.uniform(low=0, high=100, size=k)
-    counts = {sv: int(pi*k) for sv, pi in props.items()}
-    while sum(counts.values()) != k:
-        idx = rng.choice(list(counts.keys()), size=1)[0]
-        counts[idx] += 1
-    attrs = [[sv]*c for sv, c in counts.items()]
-    attrs = [item for sublist in attrs for item in sublist]
-    df = pd.DataFrame({'score': scores, s: attrs})
-    return df
-
-def infeasible_index(ranking: pd.DataFrame, sens_attr: str, probs: dict, kmax: int):
-    ii = 0
-    ks = set()
-    for k in range(1, kmax+1):
-        r = ranking[:k]
-        for ai in probs.keys():
-            count_ai = r[r[sens_attr] == ai].shape[0]
-            if count_ai < int(probs[ai]*k):
-                ii+=1
-                ks.add(k)
-    return ii, ks
