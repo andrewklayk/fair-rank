@@ -8,14 +8,14 @@ def detgreedy(items: pd.DataFrame, s: str,
     #counts_a = np.zeros(shape=len(probs.keys()))
     
     items = items.sort_values(axis=0, by='score',ascending=False)
-    item_groups = [it for ai, it in zip(props.keys(), [items[items[s] == ai] for ai in props.keys()])]
+    item_groups = {ai: it for ai, it in zip(props.keys(), [items[items[s] == ai] for ai in props.keys()])}
 
     for k in range(1,kmax):
         below_min = []
         below_max = []
+        candidates = [candidates_ai.iloc[counts_a[ai]] for ai, candidates_ai in item_groups.items()]
         for ai in props.keys():
             # best unranked items for each sensitive attribute
-            candidates = [items_a.iloc[counts_a[ai]] for items_a in item_groups]
             if counts_a[ai] < np.floor(k*props[ai]):
                 below_min.append((ai))
             elif counts_a[ai] < np.ceil(k*props[ai]):
