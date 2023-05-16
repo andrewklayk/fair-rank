@@ -42,9 +42,9 @@ def detcons(items: pd.DataFrame, s: str,
     for k in range(1,kmax):
         below_min = []
         below_max = []
+        candidates = [candidates_ai.iloc[counts_a[ai]] for ai, candidates_ai in item_groups.items()]
         for ai in props.keys():
             # best unranked items for each sensitive attribute
-            candidates = [items_a.iloc[counts_a[ai]] for items_a in item_groups.values()]
             if counts_a[ai] < np.floor(k*props[ai]):
                 below_min.append((ai))
             elif counts_a[ai] < np.ceil(k*props[ai]):
@@ -67,8 +67,6 @@ def detcons(items: pd.DataFrame, s: str,
         rankedItems.append(next_item)
         counts_a[next_item[s]] += 1
     return pd.DataFrame(rankedItems)
-
-
 
 def detconstsort(items: pd.DataFrame | dict, s: str, 
                  props: dict, kmax: int=10,):

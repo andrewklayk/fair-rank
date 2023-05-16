@@ -10,7 +10,6 @@ def ndcg(scores):
     best = np.sort(scores)[::-1]
     return dcg(scores)/dcg(best)
 
-
 def infeasible_index(ranking: pd.DataFrame, sens_attr: str, probs: dict, kmax: int):
     ii = 0
     ks = set()
