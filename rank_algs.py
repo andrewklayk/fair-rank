@@ -70,64 +70,60 @@ def detcons(items: pd.DataFrame, s: str,
 
 def detconstsort(items: pd.DataFrame | dict, s: str, 
                  props: dict, kmax: int=10,):
-    rankedAttList = []
-    rankedScoreList = []
     rankedItems = []
     maxIndices = []
     sens_vals = list(props.keys())
-    p = list(props.values())
-    counts = np.zeros(shape=len(sens_vals), dtype=int)
-    min_counts = np.zeros(shape=len(sens_vals), dtype=int).tolist()
+    counts_a = {a: 0 for a in sens_vals}
+    min_counts = {a: 0 for a in sens_vals}
     lastEmpty = 0
     k=0
     # check if there's enough items of each class to satisfy constraint
-    for sv in props.keys():
-        target_count = kmax*props[sv]
-        if target_count > items[items[s] == sv].shape[0]:
+    for ai in sens_vals:
+        target_count = kmax*props[ai]
+        if target_count > items[items[s] == ai].shape[0]:
             raise ValueError(
-                f'Not enough items of group -- {sv} -- to satisfy target constraint!'
+                f'Not enough items of group -- {ai} -- to satisfy target constraint!'
             )
     # group the items by their sensitive attribute values
     if not isinstance(items, dict):
         items = items.sort_values(axis=0, by='score',ascending=False)
-        item_groups = [it for ai, it in zip(sens_vals, [items[items[s] == ai] for ai in sens_vals])]
+        item_groups = {ai: it for ai, it in zip(sens_vals, [items[items[s] == ai] for ai in sens_vals])}
     else:
         # check if dict is constructed correctly maybe?
         raise(NotImplementedError)
     while lastEmpty < kmax:
         k+=1
         # determine the minimum feasible counts of each group at current rec. list size
-        min_counts_at_k = [int(pai*k) for pai in p]
+        min_counts_at_k = {ai: int(pai*k) for ai, pai in props.items()}
         # get sensitive attr. values for which the current minimum count has increased
         # since last one
         changed_mins = []
-        for i, ac in enumerate(zip(min_counts_at_k, min_counts)):
-            min_atk = ac[0]
-            min_ai = ac[1]
-            if min_atk > min_ai:
-                changed_mins.append(i)
+        for ai in sens_vals:
+            if min_counts_at_k[ai] > min_counts[ai]:
+                changed_mins.append(ai)
+        # for ac in enumerate(zip(min_counts_at_k, min_counts)):
+        #     min_atk = ac[0]
+        #     min_ai = ac[1]
+        #     if min_atk > min_ai:
+        #         changed_mins.append(ac)
             
         if len(changed_mins) > 0:
             # get the list of candidates to insert and sort them by their score
             changed_items = []
-            for i in changed_mins:
-                changed_items.append(item_groups[i].iloc[counts[i]])
+            for ai in changed_mins:
+                changed_items.append(item_groups[ai].iloc[counts_a[ai]])
             changed_items.sort(key=lambda x: x['score'])
 
             # add the items, starting with the best score
             for newitem in changed_items:
-                rankedAttList.append(newitem[s])
-                rankedScoreList.append(newitem['score'])
                 maxIndices.append(k)
                 rankedItems.append(newitem)
                 start = lastEmpty
-                while start > 0 and maxIndices[start-1] >= start and rankedScoreList[start-1] < rankedScoreList[start]:
+                while start > 0 and maxIndices[start-1] >= start and rankedItems[start-1]['score'] < rankedItems[start]['score']:
                     maxIndices[start-1], maxIndices[start] = maxIndices[start], maxIndices[start-1]
-                    rankedScoreList[start-1], rankedScoreList[start] = rankedScoreList[start], rankedScoreList[start-1]
-                    rankedAttList[start-1], rankedAttList[start] = rankedAttList[start], rankedAttList[start-1]
                     rankedItems[start-1], rankedItems[start] = rankedItems[start], rankedItems[start-1]
                     start -= 1
                 lastEmpty+=1
-                counts[sens_vals.index(newitem[s])] += 1
+                counts_a[newitem[s]] += 1
             min_counts = min_counts_at_k
     return pd.DataFrame(rankedItems)
